@@ -42,6 +42,25 @@ async function run() {
 
         const usersCollection = client.db("TrixMart").collection("users");
         const productsCollection = client.db("TrixMart").collection("products");
+        const cartsCollection = client.db("TrixMart").collection("carts");
+
+
+
+        // middleware
+        const verifyToken = (req, res, next) => {
+            // console.log('inside verify', req.headers.authorization);
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: 'Unauthorized access!' })
+            }
+            const token = req.headers.authorization.split(' ')[1];
+            jwt.verify(token, 'SECRET_KEY', (err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: 'Unauthorized access!' })
+                }
+                req.decoded = decoded;
+                next();
+            })
+        }
 
 
 
@@ -108,26 +127,45 @@ async function run() {
 
 
         // Home Data
-        app.get('/homeData', async(req, res) =>{
-            const cloths = await productsCollection.find({category : 'cloth'}).limit(5).toArray();
-            const gadgets = await productsCollection.find({category : 'gadget'}).limit(5).toArray();
-            const toys = await productsCollection.find({category : 'toy'}).limit(5).toArray();
-            const furniture = await productsCollection.find({category : 'furniture'}).limit(5).toArray();
+        app.get('/homeData', async (req, res) => {
+            const cloths = await productsCollection.find({ category: 'cloth' }).limit(5).toArray();
+            const gadgets = await productsCollection.find({ category: 'gadget' }).limit(5).toArray();
+            const toys = await productsCollection.find({ category: 'toy' }).limit(5).toArray();
+            const furniture = await productsCollection.find({ category: 'furniture' }).limit(5).toArray();
 
-            res.send({cloths, gadgets, toys, furniture})
+            res.send({ cloths, gadgets, toys, furniture })
         })
 
 
 
         // Load Products
-        app.get('/products', async(req, res) =>{
-            const {category} = req.query;
+        app.get('/products', async (req, res) => {
+            const { category } = req.query;
 
             console.log('category=', category);
 
-            const result = await productsCollection.find({category : category}).toArray()
-            
+            const result = await productsCollection.find({ category: category }).toArray()
+
             res.send(result);
+        })
+
+
+
+        // Add To Cart
+        app.post('/addToCart', verifyToken, async(req, res) =>{
+            const cartInfo = req.body;
+            
+            const isExist = await cartsCollection.findOne({email: cartInfo.email, productId: cartInfo.productId})
+
+            if(!isExist){
+                const result = await cartsCollection.insertOne(cartInfo);
+
+                return res.send(result)
+            }else{
+                return res.send({insertedId: false})
+            }
+
+            
         })
 
 
