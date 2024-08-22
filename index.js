@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
@@ -43,6 +43,7 @@ async function run() {
         const usersCollection = client.db("TrixMart").collection("users");
         const productsCollection = client.db("TrixMart").collection("products");
         const cartsCollection = client.db("TrixMart").collection("carts");
+        const ordersCollection = client.db("TrixMart").collection("orders");
 
 
 
@@ -82,7 +83,10 @@ async function run() {
                 // lastName: req.body.lastName,
                 // email: req.body.email,
                 // phone: req.body.phone,
-                ...user, password: securePassword,
+                ...user, 
+                password: securePassword,
+                ordered: 0,
+                amount: 0,
             }
             const result = await usersCollection.insertOne(userInfo);
 
@@ -175,6 +179,47 @@ async function run() {
             const result = await cartsCollection.find({email: email}).toArray()
 
             res.send(result)
+        })
+
+        app.patch('/handleCart', async(req, res) =>{
+            const {option, id, quantity} = req.body;
+            console.log(option, id);
+
+            const item = await cartsCollection.findOne({_id: new ObjectId(id)})
+            const remove = await cartsCollection.deleteOne({_id: new ObjectId(id)})
+
+            if(option !== 'confirm'){
+                return res.send({remove})
+            }
+
+            const orderInfo = {
+                email: item.email,
+                productName: item.productName,
+                image: item.image,
+                price: item.price,
+                productId: item.productId,
+                quantity
+            }
+
+            const order = await ordersCollection.insertOne(orderInfo);
+
+            const user = await usersCollection.findOne({email: item.email})
+            const newOrdered = user.ordered + 1;
+            const newAmount = user.amount + (item.price * quantity);
+
+            const filter = { email: user.email };
+
+            const updateDoc = {
+                $set: {
+                    ordered: newOrdered,
+                    amount: newAmount
+                },
+            };
+
+            const result = await usersCollection.updateOne(filter, updateDoc);
+
+
+            res.send({remove, order});
         })
 
 
