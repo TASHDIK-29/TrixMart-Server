@@ -75,7 +75,6 @@ async function run() {
         app.post('/login', async (req, res) => {
             const { email, password } = req.body;
 
-            // console.log('emailOrNumber and pin', emailOrNumber, pin);
 
             const query = {
                 email: email
@@ -116,6 +115,19 @@ async function run() {
             const furniture = await productsCollection.find({category : 'furniture'}).limit(5).toArray();
 
             res.send({cloths, gadgets, toys, furniture})
+        })
+
+
+
+        // Load Products
+        app.get('/products', async(req, res) =>{
+            const {category} = req.query;
+
+            console.log('category=', category);
+
+            const result = await productsCollection.find({category : category}).toArray()
+            
+            res.send(result);
         })
 
 
