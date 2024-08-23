@@ -131,10 +131,10 @@ async function run() {
 
 
         // User
-        app.get('/user/:email', verifyToken, async(req, res) =>{
+        app.get('/user/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
 
-            const user = await usersCollection.findOne({email})
+            const user = await usersCollection.findOne({ email })
 
             res.send(user);
         })
@@ -173,11 +173,14 @@ async function run() {
 
         // Load Products
         app.get('/products', async (req, res) => {
-            const { category } = req.query;
+            const { category, currentPage } = req.query;
 
             console.log('category=', category);
 
-            const result = await productsCollection.find({ category: category }).toArray()
+            const result = await productsCollection.find({ category: category })
+            .skip(currentPage * 8)
+            .limit(8)
+            .toArray()
 
             res.send(result);
         })
@@ -253,12 +256,22 @@ async function run() {
 
 
         // Orders
-        app.get('/orders', verifyToken, async(req, res) =>{
-            const {email} = req.query;
+        app.get('/orders', verifyToken, async (req, res) => {
+            const { email } = req.query;
 
-            const orders = await ordersCollection.find({email}).toArray();
+            const orders = await ordersCollection.find({ email }).toArray();
 
             res.send(orders);
+        })
+
+
+        // Pagination
+        app.get('/productCount', async (req, res) => {
+            const {category} = req.query;
+            const products = await productsCollection.find({ category }).toArray();
+            const count = products.length;
+
+            res.send({ count });
         })
 
 
