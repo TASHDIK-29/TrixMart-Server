@@ -83,7 +83,7 @@ async function run() {
                 // lastName: req.body.lastName,
                 // email: req.body.email,
                 // phone: req.body.phone,
-                ...user, 
+                ...user,
                 password: securePassword,
                 ordered: 0,
                 amount: 0,
@@ -130,6 +130,35 @@ async function run() {
         })
 
 
+        // User
+        app.get('/user/:email', verifyToken, async(req, res) =>{
+            const email = req.params.email;
+
+            const user = await usersCollection.findOne({email})
+
+            res.send(user);
+        })
+
+        // Update Profile Image
+        app.put('/users/image/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+
+            const newImage = req.body;
+            console.log(newImage);
+
+            const updatedDoc = {
+                $set: {
+                    image: newImage.imageURL
+                }
+            }
+
+            const result = await usersCollection.updateOne(filter, updatedDoc, { upsert: true });
+
+            res.send(result);
+        })
+
+
         // Home Data
         app.get('/homeData', async (req, res) => {
             const cloths = await productsCollection.find({ category: 'cloth' }).limit(5).toArray();
@@ -156,40 +185,40 @@ async function run() {
 
 
         // Add To Cart
-        app.post('/addToCart', verifyToken, async(req, res) =>{
+        app.post('/addToCart', verifyToken, async (req, res) => {
             const cartInfo = req.body;
-            
-            const isExist = await cartsCollection.findOne({email: cartInfo.email, productId: cartInfo.productId})
 
-            if(!isExist){
+            const isExist = await cartsCollection.findOne({ email: cartInfo.email, productId: cartInfo.productId })
+
+            if (!isExist) {
                 const result = await cartsCollection.insertOne(cartInfo);
 
                 return res.send(result)
-            }else{
-                return res.send({insertedId: false})
+            } else {
+                return res.send({ insertedId: false })
             }
 
-            
+
         })
 
 
-        app.get('/allCart', verifyToken, async(req, res) =>{
-            const {email} = req.query;
+        app.get('/allCart', verifyToken, async (req, res) => {
+            const { email } = req.query;
 
-            const result = await cartsCollection.find({email: email}).toArray()
+            const result = await cartsCollection.find({ email: email }).toArray()
 
             res.send(result)
         })
 
-        app.patch('/handleCart', async(req, res) =>{
-            const {option, id, quantity} = req.body;
+        app.patch('/handleCart', async (req, res) => {
+            const { option, id, quantity } = req.body;
             console.log(option, id);
 
-            const item = await cartsCollection.findOne({_id: new ObjectId(id)})
-            const remove = await cartsCollection.deleteOne({_id: new ObjectId(id)})
+            const item = await cartsCollection.findOne({ _id: new ObjectId(id) })
+            const remove = await cartsCollection.deleteOne({ _id: new ObjectId(id) })
 
-            if(option !== 'confirm'){
-                return res.send({remove})
+            if (option !== 'confirm') {
+                return res.send({ remove })
             }
 
             const orderInfo = {
@@ -203,7 +232,7 @@ async function run() {
 
             const order = await ordersCollection.insertOne(orderInfo);
 
-            const user = await usersCollection.findOne({email: item.email})
+            const user = await usersCollection.findOne({ email: item.email })
             const newOrdered = user.ordered + 1;
             const newAmount = user.amount + (item.price * quantity);
 
@@ -219,7 +248,7 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc);
 
 
-            res.send({remove, order});
+            res.send({ remove, order });
         })
 
 
