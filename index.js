@@ -252,6 +252,16 @@ async function run() {
         })
 
 
+        // Orders
+        app.get('/orders', verifyToken, async(req, res) =>{
+            const {email} = req.query;
+
+            const orders = await ordersCollection.find({email}).toArray();
+
+            res.send(orders);
+        })
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
