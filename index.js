@@ -178,11 +178,30 @@ async function run() {
             console.log('category=', category);
 
             const result = await productsCollection.find({ category: category })
-            .skip(currentPage * 8)
-            .limit(8)
-            .toArray()
+                .skip(currentPage * 8)
+                .limit(8)
+                .toArray()
 
             res.send(result);
+        })
+
+
+        // Load Search Products
+        app.get('/searchProducts', async (req, res) => {
+            const { search } = req.query;
+
+            console.log('search=', search);
+
+            let query = {};
+            query = { productName: { $regex: search, $options: 'i' } }
+
+            if (search !== 'false' && search !== '') {
+                 const result = await productsCollection.find(query).toArray()
+
+                 return res.send({result})
+            }
+
+            res.send({result: false});
         })
 
 
@@ -267,7 +286,7 @@ async function run() {
 
         // Pagination
         app.get('/productCount', async (req, res) => {
-            const {category} = req.query;
+            const { category } = req.query;
             const products = await productsCollection.find({ category }).toArray();
             const count = products.length;
 
@@ -296,5 +315,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`job-task is on port ${port}`);
+    console.log(`TrixMart is on port ${port}`);
 })
